@@ -9,30 +9,27 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from "react-native";
-
+import { Stack } from "expo-router"; // 1. Importa Stack
 import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Fonts } from "@/constants/theme";
 
-// Definiamo le categorie per le segnalazioni
+// Questo è il codice del tuo vecchio file 'explore.tsx', ora spostato qui
 const CATEGORIES = ["Manutenzione", "Pulizia", "Rumore", "Wi-Fi", "Altro"];
 
 export default function ReportProblemScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  // Recupera il tema (light/dark) per stili dinamici
   const colorScheme = useColorScheme() ?? "light";
 
-  // Stili dinamici per l'input in base al tema
+  // ... (stili dinamici e logica handleSubmit) ...
   const inputBg = colorScheme === "light" ? "#FFFFFF" : "#2C2C2E";
   const inputBorder = colorScheme === "light" ? "#CCCCCC" : "#444444";
   const inputText = colorScheme === "light" ? "#000000" : "#FFFFFF";
-
-  const categoryBg = colorScheme === "light" ? "#F2F2F7" : "#2C2C2E";
+  const categoryBg = colorScheme === "light" ? "#F2F27" : "#2C2C2E";
   const categoryBorder = colorScheme === "light" ? "#E5E5EA" : "#444444";
   const categoryText = colorScheme === "light" ? "#000000" : "#FFFFFF";
 
@@ -44,40 +41,15 @@ export default function ReportProblemScreen() {
       );
       return;
     }
-
     setIsLoading(true);
-
-    // TODO: Sostituisci questo URL con il tuo webhook n8n per le segnalazioni
     const REPORT_WEBHOOK_URL = "IL_TUO_NUOVO_WEBHOOK_URL_N8N";
-
     try {
-      /*
-      // --- ATTIVA QUESTA SEZIONE QUANDO HAI IL WEBHOOK ---
-      const response = await fetch(REPORT_WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          category: selectedCategory,
-          description: description,
-          timestamp: new Date().toISOString(),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Errore di rete');
-      }
-      */
-
-      // Simula una chiamata di rete per ora
+      // Simula chiamata di rete
       await new Promise((resolve) => setTimeout(resolve, 1000));
-
       Alert.alert(
         "Grazie!",
         "La tua segnalazione è stata inviata con successo."
       );
-      // Pulisci il form
       setSelectedCategory(null);
       setDescription("");
     } catch (error) {
@@ -92,21 +64,29 @@ export default function ReportProblemScreen() {
   };
 
   return (
+    // 2. Aggiunto KeyboardAvoidingView
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1 }}
     >
+      {/* 3. Aggiunto Stack.Screen per il titolo e il tasto indietro */}
+      <Stack.Screen
+        options={{
+          title: "Segnala un Problema",
+        }}
+      />
       <ParallaxScrollView
-        headerBackgroundColor={{ light: "#F0AD4E", dark: "#D9534F" }} // Colori per segnalazioni
+        headerBackgroundColor={{ light: "#F0AD4E", dark: "#D9534F" }}
         headerImage={
           <IconSymbol
             size={310}
-            color="#FFF" // Icona bianca per contrasto
-            name="exclamationmark.bubble" // Icona a tema
+            color="#FFF"
+            name="exclamationmark.bubble"
             style={styles.headerImage}
           />
         }
       >
+        {/* Il resto del tuo form rimane invariato */}
         <ThemedView style={styles.titleContainer}>
           <ThemedText
             type="title"
@@ -122,7 +102,6 @@ export default function ReportProblemScreen() {
           il problema.
         </ThemedText>
 
-        {/* --- Inizio del Form --- */}
         <ThemedView style={styles.formContainer}>
           <ThemedText style={styles.label}>
             1. Seleziona una Categoria
@@ -184,12 +163,12 @@ export default function ReportProblemScreen() {
             </ThemedText>
           </TouchableOpacity>
         </ThemedView>
-        {/* --- Fine del Form --- */}
       </ParallaxScrollView>
     </KeyboardAvoidingView>
   );
 }
 
+// 4. Gli stili sono identici a quelli del tuo file explore.tsx
 const styles = StyleSheet.create({
   headerImage: {
     bottom: -90,
@@ -207,7 +186,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   formContainer: {
-    paddingBottom: 32, // Spazio per non finire sotto la tastiera
+    paddingBottom: 32,
   },
   label: {
     fontSize: 18,
@@ -246,10 +225,10 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     fontSize: 16,
     minHeight: 140,
-    textAlignVertical: "top", // Per Android
+    textAlignVertical: "top",
   },
   submitButton: {
-    backgroundColor: "#D9534F", // Rosso per segnalazioni
+    backgroundColor: "#D9534F",
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
