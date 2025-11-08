@@ -1,4 +1,5 @@
-import { Stack } from "expo-router"; // 1. Importa Stack!
+import * as Crypto from "expo-crypto"; // Importa expo-crypto
+import { Stack } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -13,7 +14,8 @@ import {
   View,
 } from "react-native";
 
-// --- ECCO IL TUO WEBHOOK GIÀ INSERITO ---
+// 1. INCOLLA QUI IL TUO URL DI *PRODUZIONE*
+// Assicurati che sia l'URL di PRODUZIONE e che il workflow sia ATTIVO
 const N8N_WEBHOOK_URL =
   "https://aiagent2000.app.n8n.cloud/webhook-test/462e8935-b53b-487d-871f-d43aca41961d";
 
@@ -24,10 +26,12 @@ interface Message {
 }
 
 export default function ChatbotScreen() {
-  // 2. Nome della funzione cambiato
   const [message, setMessage] = useState("");
   const [chatHistory, setChatHistory] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // 2. Usa EXPO-CRYPTO per generare il UUID per questa sessione
+  const [chatId] = useState(() => Crypto.randomUUID());
 
   const handleSend = async () => {
     const currentMessage = message.trim();
@@ -50,24 +54,38 @@ export default function ChatbotScreen() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-Chat-Id": chatId, // Invia il Chat ID
         },
         body: JSON.stringify({
           text: currentMessage,
         }),
       });
 
-      const responseData = await response.json();
-
-      // Qui usiamo 'responseText' come chiave
-      const botResponse: Message = {
-        id: String(new Date().getTime() + 1),
-        text: responseData.responseText || "Non ho capito.",
-        sender: "bot",
-      };
-
-      setChatHistory((prevHistory) => [botResponse, ...prevHistory]);
+      // 3. Controllo robusto della risposta (per evitare l'errore JSON)
+      const contentType = response.headers.get("content-type");
+      if (
+        response.ok &&
+        contentType &&
+        contentType.includes("application/json")
+      ) {
+        // TUTTO OK: n8n ha risposto con JSON
+        const responseData = await response.json();
+        const botResponse: Message = {
+          id: String(new Date().getTime() + 1),
+          text: responseData.responseText || "Non ho capito.",
+          sender: "bot",
+        };
+        setChatHistory((prevHistory) => [botResponse, ...prevHistory]);
+      } else {
+        // ERRORE: n8n non ha risposto con JSON (es. errore HTML o workflow inattivo)
+        const errorText = await response.text();
+        console.error("Risposta non-JSON da n8n:", errorText);
+        // Lancia l'errore che hai visto
+        throw new Error("La risposta del server non è in formato JSON.");
+      }
     } catch (error) {
-      console.error("Errore di rete:", error);
+      // Cattura l'errore sopra o un errore di rete
+      console.error("Errore in handleSend:", error);
       const errorResponse: Message = {
         id: String(new Date().getTime() + 1),
         text: "Errore di connessione con n8n.",
@@ -79,6 +97,7 @@ export default function ChatbotScreen() {
     }
   };
 
+  // Funzione per renderizzare le bolle di chat
   const renderMessage = ({ item }: { item: Message }) => {
     const isUser = item.sender === "user";
     return (
@@ -95,10 +114,9 @@ export default function ChatbotScreen() {
     );
   };
 
+  // UI
   return (
-    // 3. SafeAreaView gestisce l'area sicura
     <SafeAreaView style={styles.container}>
-      {/* 4. Questo aggiunge il titolo e il pulsante "Indietro" */}
       <Stack.Screen
         options={{
           title: "Chatbot",
@@ -113,6 +131,7 @@ export default function ChatbotScreen() {
         renderItem={renderMessage}
       />
 
+      {/* Indicatore di caricamento */}
       {isLoading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#007AFF" />
@@ -120,11 +139,11 @@ export default function ChatbotScreen() {
         </View>
       )}
 
-      {/* 5. KeyboardAvoidingView è ancora necessario */}
+      {/* Input bar */}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0} // Aggiustamento per lo Stack
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         <View style={styles.chatContainer}>
           <TextInput
@@ -148,16 +167,17 @@ export default function ChatbotScreen() {
   );
 }
 
-// --- Gli stili sono identici a prima, con 'container' aggiornato ---
+// Stili
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5", // Sfondo coerente
+    backgroundColor: "#f5f5ff", // Sfondo leggermente azzurro
   },
   chatList: {
     flex: 1,
     paddingHorizontal: 10,
   },
+  // Stili bolle di chat
   messageBubble: {
     padding: 12,
     borderRadius: 20,
@@ -165,7 +185,7 @@ const styles = StyleSheet.create({
     marginVertical: 5,
   },
   userBubble: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#007AFF", // Blu per l'utente
     alignSelf: "flex-end",
   },
   userText: {
@@ -173,13 +193,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   botBubble: {
-    backgroundColor: "#E5E5EA",
+    backgroundColor: "#E5E5EA", // Grigio per il bot
     alignSelf: "flex-start",
   },
   botText: {
     color: "#000",
     fontSize: 16,
   },
+  // Stili caricamento
   loadingContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -191,6 +212,7 @@ const styles = StyleSheet.create({
     color: "#999",
     fontSize: 14,
   },
+  // Stili input bar
   keyboardView: {},
   chatContainer: {
     padding: 10,
@@ -217,7 +239,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   sendButtonDisabled: {
-    backgroundColor: "#A9A9A9",
+    backgroundColor: "#A9A9A9", // Grigio quando disabilitato
   },
   sendButtonText: {
     color: "#fff",
