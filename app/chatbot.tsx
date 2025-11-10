@@ -1,6 +1,6 @@
 import * as Crypto from "expo-crypto"; // Importa expo-crypto
 import { Stack } from "expo-router";
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -17,7 +17,7 @@ import {
 // 1. INCOLLA QUI IL TUO URL DI *PRODUZIONE*
 // Assicurati che sia l'URL di PRODUZIONE e che il workflow sia ATTIVO
 const N8N_WEBHOOK_URL =
-  "https://aiagent2000.app.n8n.cloud/webhook-test/462e8935-b53b-487d-871f-d43aca41961d";
+  "https://aiagent2000.app.n8n.cloud/webhook/462e8935-b53b-487d-871f-d43aca41961d";
 
 interface Message {
   id: string;
@@ -50,42 +50,66 @@ export default function ChatbotScreen() {
     setMessage("");
 
     try {
+      // Timeout esplicito per evitare richieste pendenti
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
       const response = await fetch(N8N_WEBHOOK_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Chat-Id": chatId, // Invia il Chat ID
+          // Rimuoviamo l'header custom per evitare eventuali blocchi/WAF
+          // "X-Chat-Id": chatId,
         },
         body: JSON.stringify({
           text: currentMessage,
+          // Se serve correlazione lato n8n, includiamo il chatId nel body
+          chatId,
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
-      // 3. Controllo robusto della risposta (per evitare l'errore JSON)
-      const contentType = response.headers.get("content-type");
-      if (
-        response.ok &&
-        contentType &&
-        contentType.includes("application/json")
-      ) {
-        // TUTTO OK: n8n ha risposto con JSON
-        const responseData = await response.json();
+      const status = response.status;
+      const contentType = response.headers.get("content-type") || "";
+
+      let parsed: any | null = null;
+      let rawText: string | null = null;
+
+      try {
+        // Proviamo comunque a parsare JSON anche se l'header non è perfetto
+        parsed = await response.clone().json();
+      } catch {
+        try {
+          rawText = await response.text();
+          // Tentativo di parse se il server ha mandato JSON ma content-type non standard
+          if (rawText && rawText.trim().startsWith("{")) {
+            parsed = JSON.parse(rawText);
+          }
+        } catch {
+          // Manteniamo parsed = null
+        }
+      }
+
+      if (response.ok && parsed) {
         const botResponse: Message = {
           id: String(new Date().getTime() + 1),
-          text: responseData.responseText || "Non ho capito.",
+          text: parsed.responseText || "Non ho capito.",
           sender: "bot",
         };
         setChatHistory((prevHistory) => [botResponse, ...prevHistory]);
       } else {
-        // ERRORE: n8n non ha risposto con JSON (es. errore HTML o workflow inattivo)
-        const errorText = await response.text();
-        console.error("Risposta non-JSON da n8n:", errorText);
-        // Lancia l'errore che hai visto
-        throw new Error("La risposta del server non è in formato JSON.");
+        console.error(
+          "Risposta inattesa da n8n",
+          JSON.stringify({ status, contentType, parsed, rawText: rawText?.slice(0, 300) })
+        );
+        throw new Error(
+          `Richiesta fallita (status ${status}). Content-Type: ${contentType}`
+        );
       }
-    } catch (error) {
-      // Cattura l'errore sopra o un errore di rete
-      console.error("Errore in handleSend:", error);
+    } catch (error: any) {
+      // Mostra un errore più informativo nel log e un messaggio utente generico
+      console.error("Errore in handleSend:", error?.message || error);
       const errorResponse: Message = {
         id: String(new Date().getTime() + 1),
         text: "Errore di connessione con n8n.",
