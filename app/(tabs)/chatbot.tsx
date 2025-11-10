@@ -1,6 +1,6 @@
-import * as Crypto from "expo-crypto"; // Importa expo-crypto
+import * as Crypto from "expo-crypto";
 import { Stack } from "expo-router";
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -13,9 +13,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+// 1. Import IconSymbol and Fonts for the new UI
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Fonts } from "@/constants/theme";
 
-// 1. INCOLLA QUI IL TUO URL DI *PRODUZIONE*
-// Assicurati che sia l'URL di PRODUZIONE e che il workflow sia ATTIVO
 const N8N_WEBHOOK_URL =
   "https://aiagent2000.app.n8n.cloud/webhook/462e8935-b53b-487d-871f-d43aca41961d";
 
@@ -30,9 +31,9 @@ export default function ChatbotScreen() {
   const [chatHistory, setChatHistory] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 2. Usa EXPO-CRYPTO per generare il UUID per questa sessione
   const [chatId] = useState(() => Crypto.randomUUID());
 
+  // --- La tua robusta logica handleSend rimane invariata ---
   const handleSend = async () => {
     const currentMessage = message.trim();
     if (currentMessage === "" || isLoading) {
@@ -50,7 +51,6 @@ export default function ChatbotScreen() {
     setMessage("");
 
     try {
-      // Timeout esplicito per evitare richieste pendenti
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
 
@@ -58,12 +58,9 @@ export default function ChatbotScreen() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Rimuoviamo l'header custom per evitare eventuali blocchi/WAF
-          // "X-Chat-Id": chatId,
         },
         body: JSON.stringify({
           text: currentMessage,
-          // Se serve correlazione lato n8n, includiamo il chatId nel body
           chatId,
         }),
         signal: controller.signal,
@@ -77,12 +74,10 @@ export default function ChatbotScreen() {
       let rawText: string | null = null;
 
       try {
-        // Proviamo comunque a parsare JSON anche se l'header non è perfetto
         parsed = await response.clone().json();
       } catch {
         try {
           rawText = await response.text();
-          // Tentativo di parse se il server ha mandato JSON ma content-type non standard
           if (rawText && rawText.trim().startsWith("{")) {
             parsed = JSON.parse(rawText);
           }
@@ -101,14 +96,18 @@ export default function ChatbotScreen() {
       } else {
         console.error(
           "Risposta inattesa da n8n",
-          JSON.stringify({ status, contentType, parsed, rawText: rawText?.slice(0, 300) })
+          JSON.stringify({
+            status,
+            contentType,
+            parsed,
+            rawText: rawText?.slice(0, 300),
+          })
         );
         throw new Error(
           `Richiesta fallita (status ${status}). Content-Type: ${contentType}`
         );
       }
     } catch (error: any) {
-      // Mostra un errore più informativo nel log e un messaggio utente generico
       console.error("Errore in handleSend:", error?.message || error);
       const errorResponse: Message = {
         id: String(new Date().getTime() + 1),
@@ -121,7 +120,9 @@ export default function ChatbotScreen() {
     }
   };
 
-  // Funzione per renderizzare le bolle di chat
+  // --- UI Riorganizzata ---
+
+  // Per pulizia, ho spostato il render dell'item in una sua funzione
   const renderMessage = ({ item }: { item: Message }) => {
     const isUser = item.sender === "user";
     return (
@@ -138,7 +139,13 @@ export default function ChatbotScreen() {
     );
   };
 
-  // UI
+  // Un componente per il "typing" del bot
+  const renderTypingIndicator = () => (
+    <View style={[styles.messageBubble, styles.botBubble]}>
+      <ActivityIndicator size="small" color="#000" />
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen
@@ -153,17 +160,16 @@ export default function ChatbotScreen() {
         inverted
         keyExtractor={(item) => item.id}
         renderItem={renderMessage}
+        // 2. Aggiunto spazio in fondo (che è in alto con 'inverted')
+        contentContainerStyle={{
+          paddingBottom: 10,
+        }}
       />
 
-      {/* Indicatore di caricamento */}
-      {isLoading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#007AFF" />
-          <Text style={styles.loadingText}>n8n sta pensando...</Text>
-        </View>
-      )}
+      {/* 3. L'indicatore di caricamento ora è un componente "typing" */}
+      {isLoading && renderTypingIndicator()}
 
-      {/* Input bar */}
+      {/* 4. Input bar riprogettata */}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
@@ -172,18 +178,20 @@ export default function ChatbotScreen() {
         <View style={styles.chatContainer}>
           <TextInput
             style={styles.input}
-            placeholder="Type your message..."
-            placeholderTextColor="#999"
+            placeholder="Scrivi un messaggio..."
+            placeholderTextColor="#9A9A9A"
             value={message}
             onChangeText={setMessage}
             editable={!isLoading}
+            multiline // Permette all'input di crescere
           />
           <TouchableOpacity
             style={[styles.sendButton, isLoading && styles.sendButtonDisabled]}
             onPress={handleSend}
             disabled={isLoading}
           >
-            <Text style={styles.sendButtonText}>Send</Text>
+            {/* 5. Icona al posto del testo */}
+            <IconSymbol name="paperplane.fill" size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -191,25 +199,31 @@ export default function ChatbotScreen() {
   );
 }
 
-// Stili
+// --- Stili Aggiornati ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5ff", // Sfondo leggermente azzurro
+    backgroundColor: "#FFFFFF", // Sfondo bianco pulito
   },
   chatList: {
     flex: 1,
     paddingHorizontal: 10,
   },
-  // Stili bolle di chat
   messageBubble: {
     padding: 12,
+    paddingHorizontal: 16, // Più spazio orizzontale
     borderRadius: 20,
     maxWidth: "80%",
     marginVertical: 5,
+    // 6. Aggiunta ombra per un look più "nativo"
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   userBubble: {
-    backgroundColor: "#007AFF", // Blu per l'utente
+    backgroundColor: "#007AFF",
     alignSelf: "flex-end",
   },
   userText: {
@@ -217,57 +231,52 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   botBubble: {
-    backgroundColor: "#E5E5EA", // Grigio per il bot
+    backgroundColor: "#E5E5EA",
     alignSelf: "flex-start",
   },
   botText: {
     color: "#000",
     fontSize: 16,
   },
-  // Stili caricamento
-  loadingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 10,
-  },
-  loadingText: {
-    marginLeft: 10,
-    color: "#999",
-    fontSize: 14,
-  },
   // Stili input bar
   keyboardView: {},
   chatContainer: {
     padding: 10,
-    backgroundColor: "#ffffff",
-    borderTopWidth: 1,
-    borderTopColor: "#ddd",
-    paddingBottom: Platform.OS === "ios" ? 20 : 10,
+    backgroundColor: "#FFFFFF",
+    // 7. Sostituito il bordo con un'ombra più morbida
+    borderTopWidth: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 5,
+    // ---
+    paddingBottom: Platform.OS === "ios" ? 20 : 10, // Padding per la home bar
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-end", // Allinea in basso per 'multiline'
   },
   input: {
     flex: 1,
-    height: 40,
-    backgroundColor: "#eee",
-    borderRadius: 20,
-    paddingHorizontal: 15,
+    backgroundColor: "#F0F0F0", // Sfondo input più scuro
+    borderRadius: 20, // Stesso raggio del pulsante
+    paddingHorizontal: 18,
+    paddingVertical: 12, // Più alto
     fontSize: 16,
     marginRight: 10,
+    maxHeight: 120, // Limite per 'multiline'
   },
   sendButton: {
     backgroundColor: "#007AFF",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
+    // 8. Pulsante circolare
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    bottom: 2, // Allineamento fine
   },
   sendButtonDisabled: {
-    backgroundColor: "#A9A9A9", // Grigio quando disabilitato
+    backgroundColor: "#A9A9A9",
   },
-  sendButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
+  // 9. Rimosso sendButtonText, non più necessario
 });

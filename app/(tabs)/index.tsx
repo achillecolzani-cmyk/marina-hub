@@ -1,6 +1,7 @@
 import React from "react";
-import { StyleSheet, View, Pressable } from "react-native"; // 1. Importa Pressable
+import { StyleSheet, View, Pressable } from "react-native";
 import { Link } from "expo-router";
+import { Image } from "expo-image";
 import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -12,14 +13,13 @@ export default function DashboardScreen() {
     <ParallaxScrollView
       headerBackgroundColor={{ light: "#FFFFFF", dark: "#1D1D1D" }}
       headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="square.grid.2x2" // 2. Icona corretta
+        <Image
+          source={require("@/assets/images/marina.png")}
           style={styles.headerImage}
         />
       }
     >
+      {/* SECTION: Header */}
       <ThemedView style={styles.titleContainer}>
         <ThemedText
           type="title"
@@ -32,96 +32,118 @@ export default function DashboardScreen() {
       </ThemedView>
       <ThemedText style={styles.subtitle}>Seleziona un servizio</ThemedText>
 
-      {/* 3. Contenitore della griglia */}
+      {/* SECTION: Grid Menu */}
       <View style={styles.menuContainer}>
-        {/* Pulsante Chatbot */}
-        <Link href="/chatbot" asChild style={styles.menuButton}>
-          <Pressable>
-            {({ pressed }) => (
-              <ThemedView
-                style={[styles.buttonInner, { opacity: pressed ? 0.7 : 1 }]}
-                lightColor="#F0F0F0"
-                darkColor="#2C2C2E"
-              >
-                <IconSymbol
-                  name="message.fill"
-                  size={32}
-                  color="#007AFF"
-                  style={styles.buttonIcon}
-                />
-                <ThemedText style={styles.buttonText}>Chatbot</ThemedText>
-              </ThemedView>
-            )}
+        {/* --- 1. Link to TAB: 'chatbot' --- */}
+        <Link href="/chatbot" asChild>
+          <Pressable
+            style={({ pressed }) => [
+              styles.menuButton,
+              {
+                transform: [{ scale: pressed ? 0.97 : 1 }],
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}
+          >
+            <ThemedView
+              style={styles.buttonInner}
+              lightColor="#F5F5F5"
+              darkColor="#2C2C2E"
+            >
+              <IconSymbol
+                name="message.fill"
+                size={32}
+                color="#007AFF"
+                style={styles.buttonIcon}
+              />
+              <ThemedText style={styles.buttonText}>Chatbot</ThemedText>
+            </ThemedView>
           </Pressable>
         </Link>
 
-        {/* Pulsante Apertura Porte */}
-        <Link href="/apertura-porte" asChild style={styles.menuButton}>
-          <Pressable>
-            {({ pressed }) => (
-              <ThemedView
-                style={[styles.buttonInner, { opacity: pressed ? 0.7 : 1 }]}
-                lightColor="#F0F0F0"
-                darkColor="#2C2C2E"
-              >
-                <IconSymbol
-                  name="lock.open.fill"
-                  size={32}
-                  color="#007AFF"
-                  style={styles.buttonIcon}
-                />
-                <ThemedText style={styles.buttonText}>
-                  Apertura Porte
-                </ThemedText>
-              </ThemedView>
-            )}
+        {/* --- 2. Link to TAB: 'apertura-porte' --- */}
+        <Link href="/apertura-porte" asChild>
+          <Pressable
+            style={({ pressed }) => [
+              styles.menuButton,
+              {
+                transform: [{ scale: pressed ? 0.97 : 1 }],
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}
+          >
+            <ThemedView
+              style={styles.buttonInner}
+              lightColor="#F5F5F5"
+              darkColor="#2C2C2E"
+            >
+              <IconSymbol
+                name="lock.open.fill"
+                size={32}
+                color="#007AFF"
+                style={styles.buttonIcon}
+              />
+              <ThemedText style={styles.buttonText}>Apertura Porte</ThemedText>
+            </ThemedView>
           </Pressable>
         </Link>
 
-        {/* Pulsante Marina */}
-        <Link href="/marina" asChild style={styles.menuButton}>
-          <Pressable>
-            {({ pressed }) => (
-              <ThemedView
-                style={[styles.buttonInner, { opacity: pressed ? 0.7 : 1 }]}
-                lightColor="#F0F0F0"
-                darkColor="#2C2C2E"
-              >
-                <IconSymbol
-                  name="water.waves"
-                  size={32}
-                  color="#007AFF"
-                  style={styles.buttonIcon}
-                />
-                <ThemedText style={styles.buttonText}>Marina</ThemedText>
-              </ThemedView>
-            )}
+        {/* --- 3. Link to TAB: 'marina' --- */}
+        <Link href="/marina" asChild>
+          <Pressable
+            style={({ pressed }) => [
+              styles.menuButton,
+              {
+                transform: [{ scale: pressed ? 0.97 : 1 }],
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}
+          >
+            <ThemedView
+              style={styles.buttonInner}
+              lightColor="#F5F5F5"
+              darkColor="#2C2C2E"
+            >
+              <IconSymbol
+                name="water.waves"
+                size={32}
+                color="#007AFF"
+                style={styles.buttonIcon}
+              />
+              <ThemedText style={styles.buttonText}>Marina</ThemedText>
+            </ThemedView>
           </Pressable>
         </Link>
 
-        {/* Pulsante Segnala Manutenzione */}
-        <Link href="/segnala-manutenzione" asChild style={styles.menuButton}>
-          <Pressable>
-            {({ pressed }) => (
-              <ThemedView
-                style={[styles.buttonInner, { opacity: pressed ? 0.7 : 1 }]}
-                // Colori di accento per questo pulsante
-                lightColor="#F0AD4E"
-                darkColor="#D9534F"
-              >
-                <IconSymbol
-                  name="exclamationmark.bubble.fill"
-                  size={32}
-                  color="#FFFFFF"
-                  style={styles.buttonIcon}
-                />
-                <ThemedText
-                  style={[styles.buttonText, styles.buttonTextReport]}
-                >
-                  Segnala Problema
-                </ThemedText>
-              </ThemedView>
-            )}
+        {/* --- 4. Link to TAB: 'segnala-manutenzione' --- */}
+        <Link href="/segnala-manutenzione" asChild>
+          <Pressable
+            style={({ pressed }) => [
+              styles.menuButton,
+              {
+                transform: [{ scale: pressed ? 0.97 : 1 }],
+                opacity: pressed ? 0.8 : 1,
+              },
+            ]}
+          >
+            <ThemedView
+              style={styles.buttonInner}
+              lightColor="#007AFF"
+              darkColor="#0A84FF"
+            >
+              <IconSymbol
+                name="exclamationmark.bubble.fill"
+                size={32}
+                color="#FFFFFF"
+                style={styles.buttonIcon}
+              />
+              <ThemedText style={[styles.buttonText, styles.buttonTextPrimary]}>
+                Segnala Problema
+              </ThemedText>
+              {/* --- THIS WAS THE TYPO --- */}
+            </ThemedView>
+            {/* Was </TopMContainer>, now corrected to </ThemedView> */}
+            {/* --- END OF FIX --- */}
           </Pressable>
         </Link>
       </View>
@@ -129,13 +151,12 @@ export default function DashboardScreen() {
   );
 }
 
-// 4. Stili completamente nuovi per la griglia
+// --- Styles with the layout fix ---
 const styles = StyleSheet.create({
   headerImage: {
-    color: "#808080",
-    bottom: -90,
-    left: -35,
-    position: "absolute",
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
   titleContainer: {
     flexDirection: "row",
@@ -143,38 +164,48 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 18,
-    color: "#555",
+    color: "#8A8A8E",
     marginTop: 8,
-    marginBottom: 24,
+    marginBottom: 32,
     fontFamily: Fonts.rounded,
   },
   menuContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 16,
+    rowGap: 16,
   },
   menuButton: {
-    width: "48%", // Imposta la larghezza per 2 colonne
-    aspectRatio: 1, // Rende il pulsante quadrato
+    width: "48%", // 2-column layout
+    aspectRatio: 1, // Forces it to be a square
   },
   buttonInner: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
   },
   buttonIcon: {
-    marginBottom: 12, // Spazio tra icona e testo
+    marginBottom: 12,
   },
   buttonText: {
     fontSize: 16,
     fontFamily: Fonts.rounded,
     fontWeight: "600",
-    textAlign: "center", // Centra il testo
+    textAlign: "center",
+    lineHeight: 20,
+    minHeight: 40, // Ensures vertical alignment for text of different lengths
   },
-  buttonTextReport: {
-    color: "#FFFFFF", // Testo bianco per il pulsante di segnalazione
+  buttonTextPrimary: {
+    color: "#FFFFFF",
   },
 });
