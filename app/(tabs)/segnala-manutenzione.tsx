@@ -8,15 +8,19 @@ import {
   useColorScheme,
   Platform,
   KeyboardAvoidingView,
+  ActivityIndicator, // 1. Importa ActivityIndicator
 } from "react-native";
-import { Stack } from "expo-router"; // 1. Importa Stack
+import { Stack } from "expo-router";
 import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Fonts } from "@/constants/theme";
 
-// Questo è il codice del tuo vecchio file 'explore.tsx', ora spostato qui
+// --- 1. INCOLLA QUI L'URL DEL WEBHOOK N8N ---
+// Questo è il webhook che riceverà la segnalazione
+const N8N_WEBHOOK_URL = "INCOLLA_QUI_IL_TUO_URL_WEBHOOK_PER_LE_SEGNALAZIONI";
+
 const CATEGORIES = ["Manutenzione", "Pulizia", "Rumore", "Wi-Fi", "Altro"];
 
 export default function ReportProblemScreen() {
@@ -25,14 +29,15 @@ export default function ReportProblemScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const colorScheme = useColorScheme() ?? "light";
 
-  // ... (stili dinamici e logica handleSubmit) ...
+  // Stili dinamici in base al tema
   const inputBg = colorScheme === "light" ? "#FFFFFF" : "#2C2C2E";
   const inputBorder = colorScheme === "light" ? "#CCCCCC" : "#444444";
   const inputText = colorScheme === "light" ? "#000000" : "#FFFFFF";
-  const categoryBg = colorScheme === "light" ? "#F2F27" : "#2C2C2E";
+  const categoryBg = colorScheme === "light" ? "#F2F2F7" : "#2C2C2E";
   const categoryBorder = colorScheme === "light" ? "#E5E5EA" : "#444444";
   const categoryText = colorScheme === "light" ? "#000000" : "#FFFFFF";
 
+  // --- 2. Funzione handleSubmit aggiornata ---
   const handleSubmit = async () => {
     if (!selectedCategory || description.trim() === "") {
       Alert.alert(
@@ -41,15 +46,45 @@ export default function ReportProblemScreen() {
       );
       return;
     }
+
+    if (
+      N8N_WEBHOOK_URL === "INCOLLA_QUI_IL_TUO_URL_WEBHOOK_PER_LE_SEGNALAZIONI"
+    ) {
+      Alert.alert(
+        "Webhook Mancante",
+        "Per favore, inserisci l'URL del webhook n8n nel codice."
+      );
+      return;
+    }
+
     setIsLoading(true);
-    const REPORT_WEBHOOK_URL = "IL_TUO_NUOVO_WEBHOOK_URL_N8N";
+
     try {
-      // Simula chiamata di rete
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Invia i dati a n8n
+      const response = await fetch(N8N_WEBHOOK_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          category: selectedCategory,
+          description: description.trim(),
+          sentAt: new Date().toISOString(),
+        }),
+      });
+
+      // Controlla se n8n ha risposto correttamente
+      if (!response.ok) {
+        // Lancia un errore se la risposta non è 2xx
+        throw new Error(`Errore dal server n8n: ${response.status}`);
+      }
+
+      // Tutto ok, mostra successo
       Alert.alert(
         "Grazie!",
         "La tua segnalazione è stata inviata con successo."
       );
+      // Pulisci il form
       setSelectedCategory(null);
       setDescription("");
     } catch (error) {
@@ -64,17 +99,10 @@ export default function ReportProblemScreen() {
   };
 
   return (
-    // 2. Aggiunto KeyboardAvoidingView
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1 }}
     >
-      {/* 3. Aggiunto Stack.Screen per il titolo e il tasto indietro */}
-      <Stack.Screen
-        options={{
-          title: "Segnala un Problema",
-        }}
-      />
       <ParallaxScrollView
         headerBackgroundColor={{ light: "#F0AD4E", dark: "#D9534F" }}
         headerImage={
@@ -86,7 +114,6 @@ export default function ReportProblemScreen() {
           />
         }
       >
-        {/* Il resto del tuo form rimane invariato */}
         <ThemedView style={styles.titleContainer}>
           <ThemedText
             type="title"
@@ -150,6 +177,7 @@ export default function ReportProblemScreen() {
             editable={!isLoading}
           />
 
+          {/* --- 3. Pulsante di invio aggiornato --- */}
           <TouchableOpacity
             style={[
               styles.submitButton,
@@ -158,9 +186,15 @@ export default function ReportProblemScreen() {
             onPress={handleSubmit}
             disabled={isLoading}
           >
-            <ThemedText style={styles.submitButtonText}>
-              {isLoading ? "Invio in corso..." : "Invia Segnalazione"}
-            </ThemedText>
+            {isLoading ? (
+              // Mostra l'indicatore di caricamento
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              // Mostra il testo
+              <ThemedText style={styles.submitButtonText}>
+                Invia Segnalazione
+              </ThemedText>
+            )}
           </TouchableOpacity>
         </ThemedView>
       </ParallaxScrollView>
@@ -168,7 +202,6 @@ export default function ReportProblemScreen() {
   );
 }
 
-// 4. Gli stili sono identici a quelli del tuo file explore.tsx
 const styles = StyleSheet.create({
   headerImage: {
     bottom: -90,
@@ -198,13 +231,18 @@ const styles = StyleSheet.create({
   categoryContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
+    justifyContent: "space-between",
+    rowGap: 16, // Usa rowGap per griglia corretta
   },
   categoryButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    width: "48%", // 2-column layout
+    paddingVertical: 16,
+    paddingHorizontal: 10,
     borderRadius: 20,
     borderWidth: 1.5,
+    alignItems: "center",
+    aspectRatio: 2.5, // Mantiene una forma consistente
+    justifyContent: "center", // Centra il testo verticalmente
   },
   categoryButtonActive: {
     backgroundColor: "#007AFF",
@@ -212,7 +250,9 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontWeight: "500",
-    fontSize: 15,
+    fontSize: 16,
+    textAlign: "center",
+    fontFamily: Fonts.rounded,
   },
   categoryTextActive: {
     color: "#fff",
@@ -233,6 +273,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     marginTop: 24,
+    minHeight: 50, // Altezza minima per contenere l'indicatore
+    justifyContent: "center",
   },
   submitButtonDisabled: {
     backgroundColor: "#A9A9A9",
