@@ -1,25 +1,24 @@
-import React, { useState } from "react";
-import {
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
-  Alert,
-  useColorScheme,
-  Platform,
-  KeyboardAvoidingView,
-  ActivityIndicator, // 1. Importa ActivityIndicator
-} from "react-native";
-import { Stack } from "expo-router";
 import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Fonts } from "@/constants/theme";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  useColorScheme,
+  View,
+} from "react-native";
 
 // --- 1. INCOLLA QUI L'URL DEL WEBHOOK N8N ---
 // Questo è il webhook che riceverà la segnalazione
-const N8N_WEBHOOK_URL = "INCOLLA_QUI_IL_TUO_URL_WEBHOOK_PER_LE_SEGNALAZIONI";
+const N8N_WEBHOOK_URL = "https://aiagent2000.app.n8n.cloud/webhook-test/22b96d08-98f8-46e1-9a5c-7c244aafeda2";
 
 const CATEGORIES = ["Manutenzione", "Pulizia", "Rumore", "Wi-Fi", "Altro"];
 
@@ -47,12 +46,11 @@ export default function ReportProblemScreen() {
       return;
     }
 
-    if (
-      N8N_WEBHOOK_URL === "INCOLLA_QUI_IL_TUO_URL_WEBHOOK_PER_LE_SEGNALAZIONI"
-    ) {
+    // Verifica che l'URL del webhook sia valorizzato correttamente
+    if (!N8N_WEBHOOK_URL || /IL_TUO|YOUR_WEBHOOK/i.test(N8N_WEBHOOK_URL)) {
       Alert.alert(
         "Webhook Mancante",
-        "Per favore, inserisci l'URL del webhook n8n nel codice."
+        "Per favore, inserisci un URL valido del webhook n8n nel codice."
       );
       return;
     }
@@ -76,7 +74,11 @@ export default function ReportProblemScreen() {
       // Controlla se n8n ha risposto correttamente
       if (!response.ok) {
         // Lancia un errore se la risposta non è 2xx
-        throw new Error(`Errore dal server n8n: ${response.status}`);
+        let msg = "";
+        try {
+          msg = await response.text();
+        } catch {}
+        throw new Error(`Errore dal server n8n: ${response.status} ${msg}`);
       }
 
       // Tutto ok, mostra successo
