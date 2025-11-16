@@ -1,211 +1,263 @@
-import React from "react";
-import { StyleSheet, View, Pressable } from "react-native";
-import { Link } from "expo-router";
-import { Image } from "expo-image";
-import ParallaxScrollView from "@/components/parallax-scroll-view";
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Fonts } from "@/constants/theme";
+import MarinaImage from "@/assets/images/marina.png";
+import { useRouter } from "expo-router";
+import React, { useRef, useState } from "react";
+import {
+  Animated,
+  Dimensions,
+  Easing,
+  Image,
+  LayoutAnimation,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
-export default function DashboardScreen() {
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// --- Fonts ---
+const Fonts = {
+  rounded:
+    '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+};
+
+// --- Menu items ---
+const menuItems = [
+  { id: "chatbot", href: "/", text: "Chatbot", emoji: "💬" },
+  { id: "porte", href: "/apertura-porte", text: "Apertura Porte", emoji: "🔓" },
+  { id: "marina", href: "/marina", text: "Marina", emoji: "🌊" },
+  {
+    id: "segnala",
+    href: "/segnala-manutenzione",
+    text: "Segnala Problema",
+    emoji: "⚠️",
+  },
+];
+
+// --- MenuButton component ---
+interface MenuButtonProps {
+  href: string;
+  text: string;
+  emoji: string;
+  router: ReturnType<typeof useRouter>;
+  index: number;
+}
+
+function MenuButton({ href, text, emoji, router, index }: MenuButtonProps) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  const scale = useRef(new Animated.Value(1)).current;
+  const anim = useRef(new Animated.Value(0)).current;
+
+  // Entrance animation
+  Animated.timing(anim, {
+    toValue: 1,
+    duration: 420,
+    delay: index * 80 + 120,
+    useNativeDriver: true,
+    easing: Easing.out(Easing.cubic),
+  }).start();
+
+  const onPressIn = () => {
+    if (Platform.OS === "android") {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    }
+    Animated.spring(scale, {
+      toValue: 0.975,
+      useNativeDriver: true,
+      friction: 8,
+      tension: 200,
+    }).start();
+  };
+
+  const onPressOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+      friction: 8,
+      tension: 200,
+    }).start();
+  };
+
+  const backgroundColor = isHovered ? "#007AFF" : "#F5F5F5";
+  const color = isHovered ? "#FFFFFF" : "#000000";
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: "#FFFFFF", dark: "#1D1D1D" }}
-      headerImage={
-        <Image
-          source={require("@/assets/images/marina.png")}
-          style={styles.headerImage}
-        />
-      }
+    <Animated.View
+      style={[
+        styles.pressableItem,
+        {
+          opacity: anim,
+          transform: [
+            {
+              translateY: anim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [18, 0],
+              }),
+            },
+            { scale: scale },
+          ],
+        },
+      ]}
     >
-      {/* SECTION: Header */}
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}
-        >
-          Marina Hub
-        </ThemedText>
-      </ThemedView>
-      <ThemedText style={styles.subtitle}>Seleziona un servizio</ThemedText>
-
-      {/* SECTION: Grid Menu */}
-      <View style={styles.menuContainer}>
-        {/* --- 1. Link to TAB: 'chatbot' --- */}
-        <Link href="/chatbot" asChild>
-          <Pressable
-            style={({ pressed }) => [
-              styles.menuButton,
-              {
-                transform: [{ scale: pressed ? 0.97 : 1 }],
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}
-          >
-            <ThemedView
-              style={styles.buttonInner}
-              lightColor="#F5F5F5"
-              darkColor="#2C2C2E"
-            >
-              <IconSymbol
-                name="message.fill"
-                size={32}
-                color="#007AFF"
-                style={styles.buttonIcon}
-              />
-              <ThemedText style={styles.buttonText}>Chatbot</ThemedText>
-            </ThemedView>
-          </Pressable>
-        </Link>
-
-        {/* --- 2. Link to TAB: 'apertura-porte' --- */}
-        <Link href="/apertura-porte" asChild>
-          <Pressable
-            style={({ pressed }) => [
-              styles.menuButton,
-              {
-                transform: [{ scale: pressed ? 0.97 : 1 }],
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}
-          >
-            <ThemedView
-              style={styles.buttonInner}
-              lightColor="#F5F5F5"
-              darkColor="#2C2C2E"
-            >
-              <IconSymbol
-                name="lock.open.fill"
-                size={32}
-                color="#007AFF"
-                style={styles.buttonIcon}
-              />
-              <ThemedText style={styles.buttonText}>Apertura Porte</ThemedText>
-            </ThemedView>
-          </Pressable>
-        </Link>
-
-        {/* --- 3. Link to TAB: 'marina' --- */}
-        <Link href="/marina" asChild>
-          <Pressable
-            style={({ pressed }) => [
-              styles.menuButton,
-              {
-                transform: [{ scale: pressed ? 0.97 : 1 }],
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}
-          >
-            <ThemedView
-              style={styles.buttonInner}
-              lightColor="#F5F5F5"
-              darkColor="#2C2C2E"
-            >
-              <IconSymbol
-                name="water.waves"
-                size={32}
-                color="#007AFF"
-                style={styles.buttonIcon}
-              />
-              <ThemedText style={styles.buttonText}>Marina</ThemedText>
-            </ThemedView>
-          </Pressable>
-        </Link>
-
-        {/* --- 4. Link to TAB: 'segnala-manutenzione' --- */}
-        <Link href="/segnala-manutenzione" asChild>
-          <Pressable
-            style={({ pressed }) => [
-              styles.menuButton,
-              {
-                transform: [{ scale: pressed ? 0.97 : 1 }],
-                opacity: pressed ? 0.8 : 1,
-              },
-            ]}
-          >
-            <ThemedView
-              style={styles.buttonInner}
-              lightColor="#007AFF"
-              darkColor="#0A84FF"
-            >
-              <IconSymbol
-                name="exclamationmark.bubble.fill"
-                size={32}
-                color="#FFFFFF"
-                style={styles.buttonIcon}
-              />
-              <ThemedText style={[styles.buttonText, styles.buttonTextPrimary]}>
-                Segnala Problema
-              </ThemedText>
-              {/* --- THIS WAS THE TYPO --- */}
-            </ThemedView>
-            {/* Was </TopMContainer>, now corrected to </ThemedView> */}
-            {/* --- END OF FIX --- */}
-          </Pressable>
-        </Link>
-      </View>
-    </ParallaxScrollView>
+      <Pressable
+        onPress={() => router.push(href)}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        onHoverIn={() => setIsHovered(true)}
+        onHoverOut={() => setIsHovered(false)}
+        android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+        accessibilityRole="button"
+        accessibilityLabel={text}
+        style={({ pressed }) => [
+          styles.buttonInner,
+          {
+            backgroundColor: pressed
+              ? "rgba(0, 122, 255, 0.10)"
+              : isHovered
+              ? "rgba(0, 122, 255, 0.08)"
+              : backgroundColor,
+          },
+          pressed ? { opacity: 0.94, transform: [{ scale: 0.96 }] } : {},
+        ]}
+      >
+        <Text style={[styles.buttonIcon, { color }]} accessible={false}>
+          {emoji}
+        </Text>
+        <Text style={[styles.buttonText, { color }]}>{text}</Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
-// --- Styles with the layout fix ---
+// --- Main Dashboard ---
+export default function DashboardScreen() {
+  const router = useRouter();
+  const isWide = SCREEN_WIDTH > 760;
+
+  return (
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.parallaxContainer}>
+        <Image
+          source={MarinaImage}
+          style={styles.headerImage}
+          resizeMode="cover"
+        />
+
+        <View style={styles.contentContainer}>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Marina Hub</Text>
+          </View>
+
+          <Text style={styles.subtitle}>Seleziona un servizio</Text>
+
+          <View
+            style={[
+              styles.menuContainer,
+              isWide ? { justifyContent: "space-between" } : {},
+            ]}
+          >
+            {menuItems.map((item, i) => (
+              <MenuButton
+                key={item.id}
+                href={item.href}
+                text={item.text}
+                emoji={item.emoji}
+                router={router}
+                index={i}
+              />
+            ))}
+          </View>
+        </View>
+      </SafeAreaView>
+    </SafeAreaProvider>
+  );
+}
+
+// --- Styles ---
 const styles = StyleSheet.create({
+  parallaxContainer: {
+    fontFamily: Fonts.rounded,
+    backgroundColor: "#FFFFFF",
+    minHeight: "100%",
+    flex: 1,
+  },
   headerImage: {
     width: "100%",
-    height: "100%",
-    resizeMode: "cover",
+    height: 300,
+  },
+  contentContainer: {
+    padding: 24,
+    marginTop: -60,
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    elevation: 2,
+    shadowColor: "rgba(0,0,0,0.06)",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
   },
   titleContainer: {
     flexDirection: "row",
-    gap: 8,
+    alignItems: "center",
+    gap: 8 as any,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: "bold",
+    fontFamily: Fonts.rounded,
+    margin: 0,
+    color: "#000000",
   },
   subtitle: {
     fontSize: 18,
     color: "#8A8A8E",
     marginTop: 8,
-    marginBottom: 32,
+    marginBottom: 24,
     fontFamily: Fonts.rounded,
   },
   menuContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    rowGap: 16,
   },
-  menuButton: {
-    width: "48%", // 2-column layout
-    aspectRatio: 1, // Forces it to be a square
+  pressableItem: {
+    width: "48%",
+    aspectRatio: 1,
+    borderRadius: 20,
+    marginBottom: 16,
+    overflow: "hidden",
   },
   buttonInner: {
     flex: 1,
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 20,
     padding: 16,
-    shadowColor: "#000000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+    shadowColor: "rgba(0,0,0,0.08)",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   buttonIcon: {
+    fontSize: 32,
     marginBottom: 12,
+    lineHeight: 36,
   },
   buttonText: {
     fontSize: 16,
-    fontFamily: Fonts.rounded,
     fontWeight: "600",
     textAlign: "center",
     lineHeight: 20,
-    minHeight: 40, // Ensures vertical alignment for text of different lengths
-  },
-  buttonTextPrimary: {
-    color: "#FFFFFF",
+    minHeight: 40,
+    margin: 0,
   },
 });

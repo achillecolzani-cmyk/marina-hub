@@ -1,85 +1,102 @@
 import { Tabs } from "expo-router";
 import React from "react";
+import { Platform, Text } from "react-native";
 
-import { HapticTab } from "@/components/haptic-tab";
-import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+// Define icons for all the tabs
+const tabIcons: Record<string, string> = {
+  // New: Dashboard icon
+  index: "📊",
+  // Dedicated Chatbot icon
+  chatbot: "💬",
+  // Existing unused tabs (kept for completeness)
+  "apertura-porte": "🔓",
+  marina: "🌊",
+  // Segnalazione Problema icon
+  "segnala-manutenzione": "⚠️",
+};
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
-
-        // --- 1. This explicitly hides all text labels ---
-        tabBarShowLabel: false,
+        tabBarActiveTintColor: "#007AFF",
+        tabBarInactiveTintColor: "#6B7280",
+        tabBarShowLabel: true,
+        tabBarIndicatorStyle: { height: 0 },
+        tabBarStyle: {
+          backgroundColor: "#ffffff",
+          borderTopWidth: 0,
+          elevation: 8,
+          shadowColor: "#000",
+          shadowOpacity: 0.06,
+          shadowOffset: { width: 0, height: -3 },
+          height: Platform.OS === "android" ? 64 : 80,
+          paddingBottom: Platform.OS === "android" ? 8 : 20,
+        },
       }}
     >
-      {/* 1. Home Tab */}
+      {/* 1. Dashboard (index.tsx) - Assumed to be your main screen */}
       <Tabs.Screen
         name="index"
         options={{
-          // 'title' removed (no longer needed for the tab)
-          headerTitle: "HomePage", // KEEPS the back button fix
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+          title: "Dashboard",
+          tabBarLabel: ({ focused }) => (
+            <Text
+              style={{
+                fontSize: 12,
+                color: focused ? "#007AFF" : "#6B7280",
+              }}
+            >
+              Dashboard
+            </Text>
+          ),
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 24 }}>{tabIcons["index"]}</Text>
           ),
         }}
       />
 
-      {/* 2. Marina Tab */}
+      {/* 2. AI Chat (chatbot.tsx) */}
       <Tabs.Screen
-        // This MUST match your file: app/(tabs)/marina.tsx
-        name="marina"
-        options={{
-          // 'title' removed
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="water.waves" color={color} />
-          ),
-        }}
-      />
-
-      {/* 3. Chatbot Tab */}
-      <Tabs.Screen
-        // This MUST match your file: app/(tabs)/chatbot.tsx
         name="chatbot"
         options={{
-          // 'title' removed
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="message.fill" color={color} />
+          title: "AI Chat",
+          tabBarLabel: ({ focused }) => (
+            <Text
+              style={{
+                fontSize: 12,
+                color: focused ? "#007AFF" : "#6B7280",
+              }}
+            >
+              AI Chat
+            </Text>
+          ),
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 24 }}>{tabIcons["chatbot"]}</Text>
           ),
         }}
       />
 
-      {/* 4. Apertura Porte Tab */}
+      {/* 3. Segnalazione Problema (segnala-manutenzione.tsx) */}
       <Tabs.Screen
-        // This MUST match your file: app/(tabs)/apertura-porte.tsx
-        name="apertura-porte"
-        options={{
-          // 'title' removed
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="lock.open.fill" color={color} />
-          ),
-        }}
-      />
-
-      {/* 5. Segnala Manutenzione Tab */}
-      <Tabs.Screen
-        // This MUST match your file: app/(tabs)/segnala-manutenzione.tsx
         name="segnala-manutenzione"
         options={{
-          // 'title' removed
-          tabBarIcon: ({ color }) => (
-            <IconSymbol
-              size={28}
-              name="exclamationmark.bubble.fill"
-              color={color}
-            />
+          title: "Segnala Problema",
+          tabBarLabel: ({ focused }) => (
+            <Text
+              style={{
+                fontSize: 12,
+                color: focused ? "#007AFF" : "#6B7280",
+              }}
+            >
+              Problema
+            </Text>
+          ),
+          tabBarIcon: ({ focused }) => (
+            <Text style={{ fontSize: 24 }}>
+              {tabIcons["segnala-manutenzione"]}
+            </Text>
           ),
         }}
       />

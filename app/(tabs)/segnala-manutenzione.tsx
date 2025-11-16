@@ -16,9 +16,8 @@ import {
   View,
 } from "react-native";
 
-// --- 1. INCOLLA QUI L'URL DEL WEBHOOK N8N ---
-// Questo è il webhook che riceverà la segnalazione
-const N8N_WEBHOOK_URL = "https://aiagent2000.app.n8n.cloud/webhook-test/22b96d08-98f8-46e1-9a5c-7c244aafeda2";
+const N8N_WEBHOOK_URL =
+  "https://aiagent2000.app.n8n.cloud/webhook/22b96d08-98f8-46e1-9a5c-7c244aafeda2";
 
 const CATEGORIES = ["Manutenzione", "Pulizia", "Rumore", "Wi-Fi", "Altro"];
 
@@ -28,42 +27,28 @@ export default function ReportProblemScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const colorScheme = useColorScheme() ?? "light";
 
-  // Stili dinamici in base al tema
-  const inputBg = colorScheme === "light" ? "#FFFFFF" : "#2C2C2E";
-  const inputBorder = colorScheme === "light" ? "#CCCCCC" : "#444444";
-  const inputText = colorScheme === "light" ? "#000000" : "#FFFFFF";
-  const categoryBg = colorScheme === "light" ? "#F2F2F7" : "#2C2C2E";
-  const categoryBorder = colorScheme === "light" ? "#E5E5EA" : "#444444";
-  const categoryText = colorScheme === "light" ? "#000000" : "#FFFFFF";
+  const inputBg = colorScheme === "light" ? "#FFFFFF" : "#1C1C1E";
+  const inputBorder = colorScheme === "light" ? "#DDDDDD" : "#3A3A3C";
+  const inputText = colorScheme === "light" ? "#000" : "#FFF";
 
-  // --- 2. Funzione handleSubmit aggiornata ---
+  const categoryBg = colorScheme === "light" ? "#F5F7FA" : "#2C2C2E";
+  const categoryBorder = colorScheme === "light" ? "#E5E5EA" : "#3A3A3C";
+  const categoryText = colorScheme === "light" ? "#000" : "#FFF";
+
   const handleSubmit = async () => {
     if (!selectedCategory || description.trim() === "") {
-      Alert.alert(
+      return Alert.alert(
         "Campi Mancanti",
-        "Per favore, seleziona una categoria e inserisci una descrizione."
+        "Per favore seleziona una categoria e inserisci una descrizione."
       );
-      return;
-    }
-
-    // Verifica che l'URL del webhook sia valorizzato correttamente
-    if (!N8N_WEBHOOK_URL || /IL_TUO|YOUR_WEBHOOK/i.test(N8N_WEBHOOK_URL)) {
-      Alert.alert(
-        "Webhook Mancante",
-        "Per favore, inserisci un URL valido del webhook n8n nel codice."
-      );
-      return;
     }
 
     setIsLoading(true);
 
     try {
-      // Invia i dati a n8n
       const response = await fetch(N8N_WEBHOOK_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           category: selectedCategory,
           description: description.trim(),
@@ -71,30 +56,13 @@ export default function ReportProblemScreen() {
         }),
       });
 
-      // Controlla se n8n ha risposto correttamente
-      if (!response.ok) {
-        // Lancia un errore se la risposta non è 2xx
-        let msg = "";
-        try {
-          msg = await response.text();
-        } catch {}
-        throw new Error(`Errore dal server n8n: ${response.status} ${msg}`);
-      }
+      if (!response.ok) throw new Error("Errore invio n8n");
 
-      // Tutto ok, mostra successo
-      Alert.alert(
-        "Grazie!",
-        "La tua segnalazione è stata inviata con successo."
-      );
-      // Pulisci il form
+      Alert.alert("Segnalazione Inviata", "Grazie per averci informato!");
       setSelectedCategory(null);
       setDescription("");
-    } catch (error) {
-      console.error("Errore invio segnalazione:", error);
-      Alert.alert(
-        "Errore",
-        "Impossibile inviare la segnalazione. Riprova più tardi."
-      );
+    } catch (err) {
+      Alert.alert("Errore", "Impossibile inviare la segnalazione.");
     } finally {
       setIsLoading(false);
     }
@@ -102,65 +70,71 @@ export default function ReportProblemScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1 }}
     >
       <ParallaxScrollView
-        headerBackgroundColor={{ light: "#F0AD4E", dark: "#D9534F" }}
+        headerBackgroundColor={{ light: "#003366", dark: "#003366" }}
         headerImage={
           <IconSymbol
-            size={310}
+            size={300}
             color="#FFF"
-            name="exclamationmark.bubble"
+            name="wrench.and.screwdriver"
             style={styles.headerImage}
           />
         }
       >
         <ThemedView style={styles.titleContainer}>
-          <ThemedText
-            type="title"
-            style={{
-              fontFamily: Fonts.rounded,
-            }}
-          >
+          <ThemedText style={[styles.title, { fontFamily: Fonts.rounded }]}>
             Segnala un Problema
           </ThemedText>
         </ThemedView>
+
         <ThemedText style={styles.subtitle}>
-          Aiutaci a migliorare il servizio. Seleziona una categoria e descrivi
-          il problema.
+          Aiutaci a mantenere la struttura al massimo. Seleziona una categoria e
+          descrivi il problema.
         </ThemedText>
 
         <ThemedView style={styles.formContainer}>
+          {/* Categorie */}
           <ThemedText style={styles.label}>
             1. Seleziona una Categoria
           </ThemedText>
+
           <View style={styles.categoryContainer}>
-            {CATEGORIES.map((category) => (
-              <TouchableOpacity
-                key={category}
-                style={[
-                  styles.categoryButton,
-                  { backgroundColor: categoryBg, borderColor: categoryBorder },
-                  selectedCategory === category && styles.categoryButtonActive,
-                ]}
-                onPress={() => setSelectedCategory(category)}
-                disabled={isLoading}
-              >
-                <ThemedText
+            {CATEGORIES.map((category) => {
+              const active = selectedCategory === category;
+              return (
+                <TouchableOpacity
+                  key={category}
                   style={[
-                    styles.categoryText,
-                    { color: categoryText },
-                    selectedCategory === category && styles.categoryTextActive,
+                    styles.categoryButton,
+                    {
+                      backgroundColor: categoryBg,
+                      borderColor: categoryBorder,
+                    },
+                    active && styles.categoryButtonActive,
                   ]}
+                  onPress={() => setSelectedCategory(category)}
+                  disabled={isLoading}
                 >
-                  {category}
-                </ThemedText>
-              </TouchableOpacity>
-            ))}
+                  <ThemedText
+                    style={[
+                      styles.categoryText,
+                      { color: categoryText },
+                      active && styles.categoryTextActive,
+                    ]}
+                  >
+                    {category}
+                  </ThemedText>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
+          {/* Descrizione */}
           <ThemedText style={styles.label}>2. Descrivi il Problema</ThemedText>
+
           <TextInput
             style={[
               styles.textInput,
@@ -171,15 +145,14 @@ export default function ReportProblemScreen() {
               },
             ]}
             multiline
-            numberOfLines={6}
-            placeholder="Descrivi in dettaglio cosa non funziona..."
-            placeholderTextColor="#999"
+            placeholder="Descrivi cosa non funziona..."
+            placeholderTextColor="#888"
             value={description}
             onChangeText={setDescription}
             editable={!isLoading}
           />
 
-          {/* --- 3. Pulsante di invio aggiornato --- */}
+          {/* Pulsante Invio */}
           <TouchableOpacity
             style={[
               styles.submitButton,
@@ -189,10 +162,8 @@ export default function ReportProblemScreen() {
             disabled={isLoading}
           >
             {isLoading ? (
-              // Mostra l'indicatore di caricamento
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              // Mostra il testo
               <ThemedText style={styles.submitButtonText}>
                 Invia Segnalazione
               </ThemedText>
@@ -204,87 +175,117 @@ export default function ReportProblemScreen() {
   );
 }
 
+/* -------------------------------- STILI -------------------------------- */
+
 const styles = StyleSheet.create({
   headerImage: {
-    bottom: -90,
-    left: -35,
     position: "absolute",
+    bottom: -60,
+    left: -40,
+    opacity: 0.25,
   },
+
   titleContainer: {
     flexDirection: "row",
-    gap: 8,
+    alignItems: "center",
+    marginBottom: 4,
   },
+
+  title: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: "#003366",
+  },
+
   subtitle: {
     fontSize: 16,
     color: "#555",
-    marginTop: 8,
-    marginBottom: 16,
+    marginBottom: 20,
+    lineHeight: 22,
   },
+
   formContainer: {
-    paddingBottom: 32,
+    paddingBottom: 40,
   },
+
   label: {
     fontSize: 18,
     fontWeight: "600",
-    marginTop: 16,
     marginBottom: 12,
+    marginTop: 16,
+    color: "#003366",
     fontFamily: Fonts.rounded,
   },
+
+  /* CATEGORIE */
+
   categoryContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    rowGap: 16, // Usa rowGap per griglia corretta
+    rowGap: 14,
   },
+
   categoryButton: {
-    width: "48%", // 2-column layout
+    width: "48%",
     paddingVertical: 16,
-    paddingHorizontal: 10,
-    borderRadius: 20,
-    borderWidth: 1.5,
+    borderRadius: 18,
+    borderWidth: 1.4,
     alignItems: "center",
-    aspectRatio: 2.5, // Mantiene una forma consistente
-    justifyContent: "center", // Centra il testo verticalmente
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
   },
+
   categoryButtonActive: {
     backgroundColor: "#007AFF",
     borderColor: "#007AFF",
+    shadowOpacity: 0.12,
   },
+
   categoryText: {
-    fontWeight: "500",
     fontSize: 16,
-    textAlign: "center",
     fontFamily: Fonts.rounded,
+    color: "#333",
   },
+
   categoryTextActive: {
-    color: "#fff",
+    color: "#FFF",
     fontWeight: "700",
   },
+
+  /* DESCRIZIONE */
+
   textInput: {
     borderWidth: 1.5,
-    borderRadius: 12,
-    padding: 12,
-    paddingTop: 12,
+    borderRadius: 14,
+    padding: 14,
     fontSize: 16,
-    minHeight: 140,
+    minHeight: 150,
     textAlignVertical: "top",
   },
+
+  /* BUTTON SEND */
+
   submitButton: {
-    backgroundColor: "#D9534F",
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: "#003366",
+    paddingVertical: 16,
+    borderRadius: 14,
+    marginTop: 26,
     alignItems: "center",
-    marginTop: 24,
-    minHeight: 50, // Altezza minima per contenere l'indicatore
-    justifyContent: "center",
   },
+
   submitButtonDisabled: {
     backgroundColor: "#A9A9A9",
   },
+
   submitButtonText: {
-    color: "#fff",
+    color: "#FFF",
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "600",
     fontFamily: Fonts.rounded,
   },
 });
