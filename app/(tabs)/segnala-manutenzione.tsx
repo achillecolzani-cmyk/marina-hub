@@ -61,7 +61,7 @@ export default function ReportProblemScreen() {
       Alert.alert("Segnalazione Inviata", "Grazie per averci informato!");
       setSelectedCategory(null);
       setDescription("");
-    } catch (err) {
+    } catch {
       Alert.alert("Errore", "Impossibile inviare la segnalazione.");
     } finally {
       setIsLoading(false);

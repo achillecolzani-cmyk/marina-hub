@@ -1,6 +1,7 @@
 import MarinaImage from "@/assets/images/marina.png";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import {
   Animated,
   Dimensions,
@@ -17,15 +18,9 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// --- Fonts ---
-const Fonts = {
-  rounded:
-    '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-};
-
 // --- Menu items ---
 const menuItems = [
-  { id: "chatbot", href: "/", text: "Chatbot", emoji: "💬" },
+  { id: "chatbot", href: "/chatbot", text: "Chatbot", emoji: "💬" },
   { id: "porte", href: "/apertura-porte", text: "Apertura Porte", emoji: "🔓" },
   { id: "marina", href: "/marina", text: "Marina", emoji: "🌊" },
   {
@@ -46,8 +41,6 @@ interface MenuButtonProps {
 }
 
 function MenuButton({ href, text, emoji, router, index }: MenuButtonProps) {
-  const [isHovered, setIsHovered] = useState(false);
-
   const scale = useRef(new Animated.Value(1)).current;
   const anim = useRef(new Animated.Value(0)).current;
 
@@ -81,9 +74,6 @@ function MenuButton({ href, text, emoji, router, index }: MenuButtonProps) {
     }).start();
   };
 
-  const backgroundColor = isHovered ? "#007AFF" : "#F5F5F5";
-  const color = isHovered ? "#FFFFFF" : "#000000";
-
   return (
     <Animated.View
       style={[
@@ -106,27 +96,42 @@ function MenuButton({ href, text, emoji, router, index }: MenuButtonProps) {
         onPress={() => router.push(href)}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
-        onHoverIn={() => setIsHovered(true)}
-        onHoverOut={() => setIsHovered(false)}
-        android_ripple={{ color: "rgba(0,0,0,0.06)" }}
+        android_ripple={{ color: "rgba(255,255,255,0.08)" }}
         accessibilityRole="button"
         accessibilityLabel={text}
         style={({ pressed }) => [
-          styles.buttonInner,
-          {
-            backgroundColor: pressed
-              ? "rgba(0, 122, 255, 0.10)"
-              : isHovered
-              ? "rgba(0, 122, 255, 0.08)"
-              : backgroundColor,
-          },
-          pressed ? { opacity: 0.94, transform: [{ scale: 0.96 }] } : {},
+          styles.buttonOuter,
+          pressed ? { opacity: 0.9, transform: [{ scale: 0.96 }] } : {},
         ]}
       >
-        <Text style={[styles.buttonIcon, { color }]} accessible={false}>
-          {emoji}
-        </Text>
-        <Text style={[styles.buttonText, { color }]}>{text}</Text>
+        <LinearGradient
+          // Darker edges, lighter center for glass depth
+          colors={[
+            "rgba(4, 18, 52, 0.95)",
+            "rgba(40, 112, 190, 0.55)",
+            "rgba(4, 18, 52, 0.95)",
+          ]}
+          locations={[0, 0.52, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.buttonInner}
+        >
+          <Text style={styles.buttonIcon} accessible={false}>
+            {emoji}
+          </Text>
+          <Text style={styles.buttonText}>{text}</Text>
+
+          {/* Subtle shine on bottom-right border */}
+          <LinearGradient
+            colors={[
+              "rgba(255,255,255,0.0)",
+              "rgba(255,255,255,0.22)",
+            ]}
+            start={{ x: 0.4, y: 0.0 }}
+            end={{ x: 1.0, y: 1.0 }}
+            style={styles.buttonCornerHighlight}
+          />
+        </LinearGradient>
       </Pressable>
     </Animated.View>
   );
@@ -139,19 +144,27 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.parallaxContainer}>
+        <SafeAreaView style={styles.parallaxContainer}>
         <Image
           source={MarinaImage}
           style={styles.headerImage}
           resizeMode="cover"
         />
 
+        <LinearGradient
+          colors={[
+            "rgba(0,0,0,0.50)",
+            "rgba(0,0,0,0.18)",
+            "rgba(255,255,255,0.08)",
+          ]}
+          locations={[0, 0.55, 1]}
+          style={styles.overlay}
+        />
+
         <View style={styles.contentContainer}>
           <View style={styles.titleContainer}>
             <Text style={styles.title}>Marina Hub</Text>
           </View>
-
-          <Text style={styles.subtitle}>Seleziona un servizio</Text>
 
           <View
             style={[
@@ -179,45 +192,33 @@ export default function DashboardScreen() {
 // --- Styles ---
 const styles = StyleSheet.create({
   parallaxContainer: {
-    fontFamily: Fonts.rounded,
-    backgroundColor: "#FFFFFF",
-    minHeight: "100%",
     flex: 1,
+    backgroundColor: "#020514",
   },
   headerImage: {
+    ...StyleSheet.absoluteFillObject,
     width: "100%",
-    height: 300,
+    height: "100%",
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
   },
   contentContainer: {
-    padding: 24,
-    marginTop: -60,
-    backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    elevation: 2,
-    shadowColor: "rgba(0,0,0,0.06)",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+    justifyContent: "flex-end",
   },
   titleContainer: {
-    flexDirection: "row",
     alignItems: "center",
-    gap: 8 as any,
+    marginBottom: 24,
   },
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    fontFamily: Fonts.rounded,
-    margin: 0,
-    color: "#000000",
-  },
-  subtitle: {
-    fontSize: 18,
-    color: "#8A8A8E",
-    marginTop: 8,
-    marginBottom: 24,
-    fontFamily: Fonts.rounded,
+    fontSize: 42,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    textAlign: "center",
+    letterSpacing: 1,
   },
   menuContainer: {
     flexDirection: "row",
@@ -225,36 +226,50 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   pressableItem: {
-    width: "48%",
-    aspectRatio: 1,
-    borderRadius: 20,
-    marginBottom: 16,
+    width: "47%",
+    height: 120,
+    borderRadius: 26,
+    marginBottom: 12,
     overflow: "hidden",
   },
   buttonInner: {
     flex: 1,
     width: "100%",
     height: "100%",
-    display: "flex",
-    flexDirection: "column",
+    borderRadius: 26,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 20,
-    padding: 16,
-    shadowColor: "rgba(0,0,0,0.08)",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.32)",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.42,
+    shadowRadius: 26,
+    elevation: 8,
+  },
+  buttonOuter: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+    borderRadius: 26,
+    overflow: "hidden",
+  },
+  buttonCornerHighlight: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 26,
+    opacity: 0.9,
   },
   buttonIcon: {
     fontSize: 32,
-    marginBottom: 12,
+    marginBottom: 6,
     lineHeight: 36,
   },
   buttonText: {
     fontSize: 16,
     fontWeight: "600",
+    color: "#FFFFFF",
     textAlign: "center",
     lineHeight: 20,
     minHeight: 40,
