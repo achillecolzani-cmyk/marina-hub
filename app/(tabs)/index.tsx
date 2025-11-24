@@ -93,6 +93,7 @@ function MenuButton({ href, text, emoji, router, index }: MenuButtonProps) {
       ]}
     >
       <Pressable
+      //@ts-ignore
         onPress={() => router.push(href)}
         onPressIn={onPressIn}
         onPressOut={onPressOut}

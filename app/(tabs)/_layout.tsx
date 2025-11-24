@@ -57,6 +57,27 @@ export default function TabLayout() {
         }}
       />
 
+      {/* 2. Marina Services */}
+      <Tabs.Screen
+        name="marina"
+        options={{
+          title: "Marina",
+          tabBarLabel: ({ focused }) => (
+            <Text
+              style={{
+                fontSize: 12,
+                color: focused ? "#007AFF" : "#6B7280",
+              }}
+            >
+              Marina
+            </Text>
+          ),
+          tabBarIcon: () => (
+            <Text style={{ fontSize: 24 }}>{tabIcons["marina"]}</Text>
+          ),
+        }}
+      />
+
       {/* 2. AI Chat (chatbot.tsx) */}
       <Tabs.Screen
         name="chatbot"
