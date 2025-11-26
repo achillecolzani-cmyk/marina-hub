@@ -111,11 +111,20 @@ const MONTHS = [
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
+const getMaxCapacity = (capacityLabel?: string | null) => {
+  if (!capacityLabel) return 1;
+  const match = capacityLabel.match(/\d+/);
+  const parsed = match ? parseInt(match[0], 10) : NaN;
+  return Number.isFinite(parsed) ? Math.max(1, parsed) : 1;
+};
+
 export default function MarinaScreen() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [monthCursor, setMonthCursor] = useState<Date>(new Date());
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [peopleCount, setPeopleCount] = useState(1);
 
   const calendarDays = useMemo(() => {
     const year = monthCursor.getFullYear();
@@ -139,12 +148,14 @@ export default function MarinaScreen() {
     setSelectedTime(null);
     setSelectedDate(today);
     setMonthCursor(today);
+    setPeopleCount(1);
   };
 
   const closeBooking = () => {
     setSelectedService(null);
     setSelectedDate(new Date());
     setSelectedTime(null);
+    setPeopleCount(1);
   };
 
   const handleMonthChange = (direction: "prev" | "next") => {
@@ -166,7 +177,7 @@ export default function MarinaScreen() {
     );
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!selectedService || !selectedDate || !selectedTime) {
       return Alert.alert(
         "Completa la selezione",
@@ -178,11 +189,62 @@ export default function MarinaScreen() {
       MONTHS[selectedDate.getMonth()]
     } ${selectedDate.getFullYear()}`;
 
-    Alert.alert(
-      "Prenotazione confermata",
-      `${selectedService.title}\n${formattedDate} alle ${selectedTime}`
-    );
-    closeBooking();
+    try {
+      setIsSubmitting(true);
+
+      const response = await fetch(
+        "https://aiagent2000.app.n8n.cloud/webhook-test/97f80d4b-52cf-4099-b3fb-9fe81b946390",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            service: selectedService.title,
+            date: formattedDate,
+            timeSlot: selectedTime,
+            people: peopleCount,
+          }),
+        }
+      );
+
+      const raw = await response.text();
+      let parsed: any = null;
+      try {
+        parsed = raw ? JSON.parse(raw) : null;
+      } catch {
+        parsed = null;
+      }
+
+      if (!response.ok) {
+        throw new Error("Bad response");
+      }
+
+      const serverMessage =
+        (parsed &&
+          (parsed.message ||
+            parsed.result ||
+            parsed.response ||
+            parsed.data ||
+            parsed.text)) ||
+        raw ||
+        "Prenotazione confermata.";
+
+      Alert.alert(
+        "Prenotazione confermata",
+        typeof serverMessage === "string"
+          ? serverMessage
+          : `${selectedService.title}\n${formattedDate} alle ${selectedTime}`
+      );
+      closeBooking();
+    } catch {
+      Alert.alert(
+        "Errore invio",
+        "Non è stato possibile inviare la prenotazione. Riprova."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -282,6 +344,29 @@ export default function MarinaScreen() {
               </View>
             )}
 
+            <Text style={styles.sectionLabel}>Partecipanti</Text>
+            <View style={styles.stepperRow}>
+              <Pressable
+                style={styles.stepperButton}
+                onPress={() => setPeopleCount((prev) => Math.max(1, prev - 1))}
+                hitSlop={10}
+              >
+                <Ionicons name="remove" size={18} color="#0F5FA8" />
+              </Pressable>
+              <Text style={styles.peopleValue}>{peopleCount}</Text>
+              <Pressable
+                style={styles.stepperButton}
+                onPress={() =>
+                  setPeopleCount((prev) =>
+                    Math.min(getMaxCapacity(selectedService?.capacity), prev + 1)
+                  )
+                }
+                hitSlop={10}
+              >
+                <Ionicons name="add" size={18} color="#0F5FA8" />
+              </Pressable>
+            </View>
+
             <Text style={styles.sectionLabel}>Select Date</Text>
             <View style={styles.calendarCard}>
               <View style={styles.calendarHeader}>
@@ -364,8 +449,17 @@ export default function MarinaScreen() {
               })}
             </View>
 
-            <Pressable style={styles.confirmButton} onPress={handleConfirm}>
-              <Text style={styles.confirmText}>Confirm Booking</Text>
+            <Pressable
+              style={[
+                styles.confirmButton,
+                isSubmitting ? styles.confirmButtonDisabled : {},
+              ]}
+              onPress={handleConfirm}
+              disabled={isSubmitting}
+            >
+              <Text style={styles.confirmText}>
+                {isSubmitting ? "Sending..." : "Confirm Booking"}
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -616,6 +710,29 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 10,
     marginBottom: 16,
+  },
+  stepperRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    marginBottom: 14,
+  },
+  stepperButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F8FAFC",
+  },
+  peopleValue: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F1C2E",
+    minWidth: 28,
+    textAlign: "center",
   },
   timeChip: {
     paddingVertical: 10,
