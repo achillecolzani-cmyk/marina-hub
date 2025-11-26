@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Image,
@@ -118,6 +118,16 @@ const getMaxCapacity = (capacityLabel?: string | null) => {
   return Number.isFinite(parsed) ? Math.max(1, parsed) : 1;
 };
 
+const getSlotKey = (
+  service?: Service | null,
+  date?: Date | null,
+  time?: string | null
+) => {
+  if (!service || !date || !time) return null;
+  const dateKey = date.toISOString().split("T")[0];
+  return `${service.id}-${dateKey}-${time}`;
+};
+
 export default function MarinaScreen() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
@@ -125,6 +135,27 @@ export default function MarinaScreen() {
   const [monthCursor, setMonthCursor] = useState<Date>(new Date());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [peopleCount, setPeopleCount] = useState(1);
+  const [slotBookings, setSlotBookings] = useState<Record<string, number>>({});
+
+  const getBookedCount = (
+    service?: Service | null,
+    date?: Date | null,
+    time?: string | null
+  ) => {
+    const key = getSlotKey(service, date, time);
+    if (!key) return 0;
+    return slotBookings[key] ?? 0;
+  };
+
+  const getRemainingSlots = (
+    service?: Service | null,
+    date?: Date | null,
+    time?: string | null
+  ) => {
+    const capacity = getMaxCapacity(service?.capacity);
+    const booked = getBookedCount(service, date, time);
+    return Math.max(0, capacity - booked);
+  };
 
   const calendarDays = useMemo(() => {
     const year = monthCursor.getFullYear();
@@ -141,6 +172,50 @@ export default function MarinaScreen() {
     }
     return days;
   }, [monthCursor]);
+
+  const today = new Date();
+  const isPastDay = (day: Date | null) => {
+    if (!day) return true;
+    const onlyDay = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+    const onlyToday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
+    );
+    return onlyDay < onlyToday;
+  };
+
+  const isPastTime = (timeLabel: string, date: Date | null) => {
+    if (!date) return true;
+    const [time, meridiem] = timeLabel.split(" ");
+    if (!time || !meridiem) return false;
+    const [hourStr, minuteStr] = time.split(":");
+    let hour = parseInt(hourStr, 10);
+    const minute = parseInt(minuteStr, 10);
+    if (meridiem.toLowerCase() === "pm" && hour !== 12) hour += 12;
+    if (meridiem.toLowerCase() === "am" && hour === 12) hour = 0;
+    const candidate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      hour,
+      minute
+    );
+    return candidate <= today;
+  };
+
+  useEffect(() => {
+    const remaining = getRemainingSlots(
+      selectedService,
+      selectedDate,
+      selectedTime
+    );
+    if (remaining > 0) {
+      setPeopleCount((prev) => Math.min(prev, remaining));
+    } else {
+      setPeopleCount(1);
+    }
+  }, [selectedService, selectedDate, selectedTime, slotBookings]);
 
   const openBooking = (service: Service) => {
     const today = new Date();
@@ -188,6 +263,26 @@ export default function MarinaScreen() {
     const formattedDate = `${selectedDate.getDate()} ${
       MONTHS[selectedDate.getMonth()]
     } ${selectedDate.getFullYear()}`;
+    const remaining = getRemainingSlots(
+      selectedService,
+      selectedDate,
+      selectedTime
+    );
+
+    if (remaining <= 0) {
+      return Alert.alert(
+        "Slot pieno",
+        "Non ci sono posti disponibili per questo orario."
+      );
+    }
+
+    if (peopleCount > remaining) {
+      setPeopleCount(remaining);
+      return Alert.alert(
+        "Posti limitati",
+        `Sono disponibili solo ${remaining} posti per questo orario.`
+      );
+    }
 
     try {
       setIsSubmitting(true);
@@ -229,6 +324,14 @@ export default function MarinaScreen() {
             parsed.text)) ||
         raw ||
         "Prenotazione confermata.";
+
+      const slotKey = getSlotKey(selectedService, selectedDate, selectedTime);
+      if (slotKey) {
+        setSlotBookings((prev) => ({
+          ...prev,
+          [slotKey]: (prev[slotKey] ?? 0) + peopleCount,
+        }));
+      }
 
       Alert.alert(
         "Prenotazione confermata",
@@ -358,7 +461,19 @@ export default function MarinaScreen() {
                 style={styles.stepperButton}
                 onPress={() =>
                   setPeopleCount((prev) =>
-                    Math.min(getMaxCapacity(selectedService?.capacity), prev + 1)
+                    Math.min(
+                      Math.max(
+                        1,
+                        selectedTime
+                          ? getRemainingSlots(
+                              selectedService,
+                              selectedDate,
+                              selectedTime
+                            )
+                          : getMaxCapacity(selectedService?.capacity)
+                      ),
+                      prev + 1
+                    )
                   )
                 }
                 hitSlop={10}
@@ -366,6 +481,18 @@ export default function MarinaScreen() {
                 <Ionicons name="add" size={18} color="#0F5FA8" />
               </Pressable>
             </View>
+            {selectedService &&
+              selectedDate &&
+              selectedTime &&
+              getBookedCount(selectedService, selectedDate, selectedTime) > 0 && (
+                <Text style={styles.remainingNotice}>
+                  {`${getRemainingSlots(
+                    selectedService,
+                    selectedDate,
+                    selectedTime
+                  )} spots remaining for ${selectedService.title} on this slot.`}
+                </Text>
+              )}
 
             <Text style={styles.sectionLabel}>Select Date</Text>
             <View style={styles.calendarCard}>
@@ -400,6 +527,7 @@ export default function MarinaScreen() {
               <View style={styles.daysGrid}>
                 {calendarDays.map((day, index) => {
                   const isSelected = isSameDay(day, selectedDate);
+                  const isDisabled = isPastDay(day);
                   return (
                     <Pressable
                       key={`${day ? day.toISOString() : "empty"}-${index}`}
@@ -407,15 +535,17 @@ export default function MarinaScreen() {
                         styles.dayCell,
                         day ? styles.dayCellActive : styles.dayCellEmpty,
                         isSelected && styles.dayCellSelected,
+                        isDisabled && styles.dayCellDisabled,
                       ]}
-                      onPress={() => day && setSelectedDate(day)}
-                      disabled={!day}
+                      onPress={() => day && !isDisabled && setSelectedDate(day)}
+                      disabled={!day || isDisabled}
                     >
                       <Text
                         style={[
                           styles.dayText,
                           isSelected ? styles.dayTextSelected : {},
                           !day && styles.dayTextEmpty,
+                          isDisabled && styles.dayTextDisabled,
                         ]}
                       >
                         {day ? day.getDate() : ""}
@@ -430,16 +560,41 @@ export default function MarinaScreen() {
             <View style={styles.timesWrap}>
               {selectedService?.times.map((time) => {
                 const isActive = time === selectedTime;
+                const disabled =
+                  !selectedDate ||
+                  isPastDay(selectedDate) ||
+                  isPastTime(time, selectedDate);
                 return (
                   <Pressable
                     key={time}
-                    style={[styles.timeChip, isActive && styles.timeChipActive]}
-                    onPress={() => setSelectedTime(time)}
+                    style={[
+                      styles.timeChip,
+                      isActive && !disabled && styles.timeChipActive,
+                      disabled && styles.timeChipDisabled,
+                    ]}
+                    onPress={() => {
+                      if (disabled) return;
+                      setSelectedTime(time);
+                      const remainingAfterSelect = getRemainingSlots(
+                        selectedService,
+                        selectedDate,
+                        time
+                      );
+                      if (remainingAfterSelect > 0) {
+                        setPeopleCount((prev) =>
+                          Math.min(prev, remainingAfterSelect)
+                        );
+                      } else {
+                        setPeopleCount(1);
+                      }
+                    }}
+                    disabled={disabled}
                   >
                     <Text
                       style={[
                         styles.timeText,
-                        isActive ? styles.timeTextActive : {},
+                        isActive && !disabled ? styles.timeTextActive : {},
+                        disabled ? styles.timeTextDisabled : {},
                       ]}
                     >
                       {time}
@@ -694,6 +849,9 @@ const styles = StyleSheet.create({
   dayCellSelected: {
     backgroundColor: "#0F5FA8",
   },
+  dayCellDisabled: {
+    opacity: 0.4,
+  },
   dayText: {
     fontSize: 14,
     color: "#0F1C2E",
@@ -704,6 +862,10 @@ const styles = StyleSheet.create({
   },
   dayTextSelected: {
     color: "#FFFFFF",
+  },
+  dayTextDisabled: {
+    color: "#9CA3AF",
+    textDecorationLine: "line-through",
   },
   timesWrap: {
     flexDirection: "row",
@@ -734,6 +896,12 @@ const styles = StyleSheet.create({
     minWidth: 28,
     textAlign: "center",
   },
+  remainingNotice: {
+    fontSize: 13,
+    color: "#B91C1C",
+    marginBottom: 12,
+    fontWeight: "600",
+  },
   timeChip: {
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -743,6 +911,10 @@ const styles = StyleSheet.create({
   timeChipActive: {
     backgroundColor: "#0F5FA8",
   },
+  timeChipDisabled: {
+    backgroundColor: "#E5E7EB",
+    opacity: 0.6,
+  },
   timeText: {
     fontSize: 14,
     color: "#0F1C2E",
@@ -750,6 +922,10 @@ const styles = StyleSheet.create({
   },
   timeTextActive: {
     color: "#FFFFFF",
+  },
+  timeTextDisabled: {
+    color: "#9CA3AF",
+    textDecorationLine: "line-through",
   },
   confirmButton: {
     backgroundColor: "#0F5FA8",
